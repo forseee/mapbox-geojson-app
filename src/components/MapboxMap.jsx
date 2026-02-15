@@ -35,42 +35,32 @@ const MapboxMap = () => {
     fetchGeoData()
   }, [fetchGeoData])
 
-  // Add GeoJSON layer when data is loaded
-  // Intentionally didn't change the first render behavior — noticed it has different styles, but it wasn't in the task requirements.
   useEffect(() => {
     if (!map.current || !geoData) return
 
-    map.current.on("load", () => {
-      // Add source
-      if (!map.current.getSource("geodata")) {
-        map.current.addSource("geodata", {
-          type: "geojson",
-          data: geoData,
-        })
+    const addOrUpdateGeoLayer = () => {
+      if (!map.current.isStyleLoaded()) return
 
-        // Add fill layer for polygons
+      const existing = map.current.getSource("geodata")
+      if (existing) {
+        existing.setData(geoData)
+      } else {
+        map.current.addSource("geodata", { type: "geojson", data: geoData })
+
         map.current.addLayer({
           id: "geodata-fill",
           type: "fill",
           source: "geodata",
-          paint: {
-            "fill-color": "#088",
-            "fill-opacity": 0.4,
-          },
+          paint: { "fill-color": "#088", "fill-opacity": 0.4 },
         })
 
-        // Add outline layer
         map.current.addLayer({
           id: "geodata-outline",
           type: "line",
           source: "geodata",
-          paint: {
-            "line-color": "#000",
-            "line-width": 2,
-          },
+          paint: { "line-color": "#000", "line-width": 2 },
         })
 
-        // Fit map to bounds of the data
         const bounds = new mapboxgl.LngLatBounds()
         geoData.features.forEach((feature) => {
           if (feature.geometry.type === "Polygon") {
@@ -94,16 +84,16 @@ const MapboxMap = () => {
             .setLngLat(e.lngLat)
             .setHTML(
               `
-              <div style="padding: 8px;">
-                <h3 style="margin: 0 0 8px 0;">Feature Details</h3>
-                ${Object.entries(properties)
-                  .map(
-                    ([key, value]) =>
-                      `<p style="margin: 4px 0;"><strong>${key}:</strong> ${value}</p>`,
-                  )
-                  .join("")}
-              </div>
-            `,
+                  <div style="padding: 8px;">
+                    <h3 style="margin: 0 0 8px 0;">Feature Details</h3>
+                    ${Object.entries(properties)
+                      .map(
+                        ([key, value]) =>
+                          `<p style="margin: 4px 0;"><strong>${key}:</strong> ${value}</p>`,
+                      )
+                      .join("")}
+                  </div>
+                `,
             )
             .addTo(map.current)
         })
@@ -116,52 +106,16 @@ const MapboxMap = () => {
           map.current.getCanvas().style.cursor = ""
         })
       }
-    })
+    }
+    
+    if (map.current.isStyleLoaded()) {
+      addOrUpdateGeoLayer()
+    } else {
+      map.current.once("load", addOrUpdateGeoLayer)
+    }
 
-    // If map is already loaded, add the source and layers immediately
-    if (map.current.loaded()) {
-      if (!map.current.getSource("geodata")) {
-        map.current.addSource("geodata", {
-          type: "geojson",
-          data: geoData,
-        })
-
-        map.current.addLayer({
-          id: "geodata-fill",
-          type: "fill",
-          source: "geodata",
-          paint: {
-            "fill-color": "#088",
-            "fill-opacity": 0.4,
-          },
-        })
-
-        map.current.addLayer({
-          id: "geodata-outline",
-          type: "line",
-          source: "geodata",
-          paint: {
-            "line-color": "#000",
-            "line-width": 2,
-          },
-        })
-
-        const bounds = new mapboxgl.LngLatBounds()
-        geoData.features.forEach((feature) => {
-          if (feature.geometry.type === "Polygon") {
-            feature.geometry.coordinates[0].forEach((coord) => {
-              bounds.extend(coord)
-            })
-          } else if (feature.geometry.type === "MultiPolygon") {
-            feature.geometry.coordinates.forEach((polygon) => {
-              polygon[0].forEach((coord) => {
-                bounds.extend(coord)
-              })
-            })
-          }
-        })
-        map.current.fitBounds(bounds, { padding: 50 })
-      }
+    return () => {
+      map.current?.off("load", addOrUpdateGeoLayer)
     }
   }, [geoData])
 
