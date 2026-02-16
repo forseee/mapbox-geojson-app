@@ -107,7 +107,7 @@ const MapboxMap = () => {
         })
       }
     }
-    
+
     if (map.current.isStyleLoaded()) {
       addOrUpdateGeoLayer()
     } else {
@@ -166,9 +166,21 @@ const MapboxMap = () => {
           left: 10,
         }}
       >
-        <Button label="Load from Server" onClick={handleLoadGeoJSON} />
-        <Button label="Load Vector Tiles" onClick={handleLoadVectorTiles} />
-        <Button label="Filter Data (Count > 200k)" onClick={handleFilterData} />
+        <Button
+          label="Load from Server"
+          onClick={handleLoadGeoJSON}
+          disabled={loading}
+        />
+        <Button
+          label="Load Vector Tiles"
+          onClick={handleLoadVectorTiles}
+          disabled={loading}
+        />
+        <Button
+          label="Filter Data (Count > 200k)"
+          onClick={handleFilterData}
+          disabled={loading}
+        />
       </div>
     </div>
   )
